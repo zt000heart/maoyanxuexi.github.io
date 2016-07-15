@@ -1,13 +1,10 @@
 ---
-layout: post
+layout: post  
 title: 是时候来一看一下flatbuffers了
-date: 2016-09-15
-categories: blog
-tags: [tags]
-description: 一篇Android上使用flatbuffer的详细介绍
-
+categories: [blog ]  
+tags: [Tech, ]  
+description: 「」   
 ---
-
 注：注。
 
 Ps
