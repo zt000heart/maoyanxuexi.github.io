@@ -1,0 +1,556 @@
+**Gradle**
+Gradle是一个工具，同时它也是一个编程框架。前面也提到过，使用这个工具可以完成app的编译打包等工作。当然你也可以用它干其他的事情。
+
+**相关**
+Gradle的官网：**http://gradle.org/**
+**https://docs.gradle.org/current/dsl/**  
+**https://docs.gradle.org/current/javadoc/org/gradle/api/Project.html**
+
+- **settings.gradle**
+settings.gradle除了可以include外，还可以设置一些函数。这些函数会在gradle构建整个工程任务的时候执行，所以，可以在settings做一些初始化的工作。比如：我的settings.gradle的内容：
+```groovy
+//定义一个名为initMinshengGradleEnvironment的函数。该函数内部完成一些初始化操作//比如创建特定的目录，设置特定的参数等
+def initMinshengGradleEnvironment(){
+ println"initialize Minsheng Gradle Environment ....."
+ ......//干一些special的私活....
+  println"initialize Minsheng Gradle Environment completes..."
+ }
+ //settings.gradle加载的时候，会执行initMinshengGradleEnvironment
+ initMinshengGradleEnvironment()
+ //include也是一个函数：
+ include 'CPosSystemSdk' , 'CPosDeviceSdk' , 'CPosSdkDemo','CPosDeviceServerApk','CPosSystemSdkWizarPosImpl'
+```
+
+##gradle命令介绍
+1.  gradle projects查看工程信息
+2.  gradle tasks查看任务信息
+3.  gradle task-name执行任务
+  列出了好多任务，这时候就可以通过 gradle 任务名来执行某个任务。这和make xxx很像。比如：
+**gradle clean**是执行清理任务，和make clean类似。
+**gradle properites**用来查看所有属性信息。
+**gradle tasks**会列出每个任务的描述，通过描述，我们大概能知道这些任务是干什么的.....。然后gradle task-name执行它就好。
+这里要强调一点：Task和Task之间往往是有关系的，**这就是所谓的依赖关系。比如，assemble task就依赖其他task先执行，assemble才能完成最终的输出**。
+
+##Gradle基本类型
+
+gradle基于groovy, gradle提供的基本类型也都实现了script.并且提供了大量的方法和属性
+
+Build script -> Project (每个project的build.gradle也就是一个project)
+Init script -> Gradle
+Settings script -> Settings (对应setting.gradle)
+
+- [Project](https://docs.gradle.org/current/dsl/org.gradle.api.Project.html) 每个project的build.gradle都会转换成一个project
+- [Gradle](https://docs.gradle.org/current/dsl/org.gradle.api.invocation.Gradle.html) 
+- [Settings](https://docs.gradle.org/current/dsl/org.gradle.api.initialization.Settings.html) 每一个settings.gradle都会转换成一个Settings对象
+
+##Gradle 生命周期
+1.初始化创建Settings实例
+2.解析settings.gradle 构造各个Project实例
+3.解析每个Project对应的build.gradle，配置相应Project
+
+即 setting.gradle -> 各个build.gradle
+
+![Paste_Image.png](http://upload-images.jianshu.io/upload_images/1070361-a1e3f7b0222a9b7f.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+![Paste_Image.png](http://upload-images.jianshu.io/upload_images/1070361-5b8282c22b7ab389.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+上面第一张图是settings.gradle的配置
+第二张是执行assemble 打印出来的执行顺序，也就是说settings.gradle先执行
+然后是root.gradle (也就是我们根目录下的gradle) 接下来就是按照settings.gradle配置顺序进行执行～
+
+每个对象的方法就不再赘述，api中都有。
+
+##实战
+root gradle 
+```groovy
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:1.2.3'
+    }
+}
+
+allprojects {//对所有projects都起作用
+    repositories {
+        mavenCentral()
+    }
+}
+
+ext {//定义所有project公用参数  使用rootProject.ext.XX就能拿到相应对象
+    compileSdk = 23
+    minSdk = 11
+    targetSdk = 23
+    support = "23.1.1"
+    buildTools = "23.0.2"
+    glide = "3.6.0"
+    okio = "1.4.0"
+    okhttp = "2.4.0"
+    fabric = "2.4.0"
+    leakcanary = "1.3.1"
+    logansquare = "1.1.0"
+    dagger = "2.0.1"
+    packageName = "com.evilsoulm.keep_nice"
+    butterknife = "7.0.1"
+    retrofit = "2.0.0-beta2"
+    greendao = "2.0.0"
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+
+```
+commonandroid.gradle android项目共用gradle 相当于基类 可以通过apply from 引入
+```groovy
+   android {
+    compileSdkVersion rootProject.ext.compileSdk
+    buildToolsVersion rootProject.ext.buildTools
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdk
+        targetSdkVersion rootProject.ext.targetSdk
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+    dexOptions {
+        javaMaxHeapSize "2048m"
+    }
+
+    dexOptions {
+        preDexLibraries project.hasProperty('debug')
+        incremental project.hasProperty('debug')
+    }
+
+    packagingOptions {
+        exclude '.readme'
+        exclude 'LICENSE.txt'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/dependencies'
+        exclude 'META-INF/DEPENDENCIES.txt'
+        exclude 'META-INF/dependencies.txt'
+    }
+}
+```
+commonproject.gradle project项目共用gradle
+```groovy
+repositories {
+    mavenCentral()
+}
+apply plugin: 'findbugs'
+apply plugin: 'checkstyle'
+```
+
+```groovy
+apply plugin: 'com.android.application'
+apply plugin: 'com.neenbedankt.android-apt'
+apply from: rootProject.file('basegradle/commonProject.gradle')//引入commonProject
+apply from: rootProject.file('basegradle/commonAndroid.gradle')//引入commonAndroid
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
+    }
+}
+
+android {
+    defaultConfig {
+        applicationId rootProject.ext.packageName
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        debug {
+            minifyEnabled false
+            debuggable true
+            jniDebuggable true
+        }
+
+        release {
+            minifyEnabled true
+            shrinkResources false
+
+            debuggable false
+            jniDebuggable false
+            zipAlignEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    configurations {
+        all*.exclude group: 'com.google.android', module: 'android'
+        all*.exclude group: 'com.google.android', module: 'support-v4'
+        all*.exclude group: 'asm', module: 'asm'
+        all*.exclude group: 'com.google.code.gson'
+    }
+
+
+    productFlavors {//很棒的一个参数可以在底下更改包名，资源等。。
+        normal {
+
+        }
+
+        ddebug {
+        }
+    }
+}
+
+dependencies {
+    compile project(':common')
+    compile project(':model')
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:' + rootProject.ext.support
+    compile 'com.android.support:design:' + rootProject.ext.support
+    compile 'com.squareup.okio:okio:' + rootProject.ext.okio
+    compile('com.squareup.okhttp:okhttp:' + rootProject.ext.okhttp) {
+        exclude group: 'com.squareup.okio', module: 'okio'
+    }
+    //图片加载
+    compile 'com.github.bumptech.glide:glide:' + rootProject.ext.glide
+    //leakcanary
+    debugCompile 'com.squareup.leakcanary:leakcanary-android:' + rootProject.ext.leakcanary
+    releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:' + rootProject.ext.leakcanary
+    //logansquare
+    apt 'com.bluelinelabs:logansquare-compiler:' + rootProject.ext.logansquare
+    compile 'com.bluelinelabs:logansquare:' + rootProject.ext.logansquare
+    //dagger2 注入
+    apt 'com.google.dagger:dagger-compiler:' + rootProject.ext.dagger
+    compile 'com.google.dagger:dagger:' + rootProject.ext.dagger
+    //UI注入
+    compile 'com.jakewharton:butterknife:' + rootProject.ext.butterknife
+    //rxjava
+    compile 'io.reactivex:rxjava:1.0.10'
+    compile 'io.reactivex:rxandroid:0.24.0'
+    //网络框架
+    compile 'com.squareup.retrofit:retrofit:' + rootProject.ext.retrofit
+    compile 'com.squareup.retrofit:converter-gson:' + rootProject.ext.retrofit
+    compile 'com.squareup.retrofit:adapter-rxjava:' + rootProject.ext.retrofit
+
+}
+
+```
+
+
+##写法2
+另一种写法就是只有一个root.build 通过configure进行每个module的配置 ,每个module下的build.gradle就可以删除了～统一在root.build下进行管理
+eg.只写了一个module
+```groovy
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:1.2.3'
+    }
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+
+ext {
+    compileSdk = 23
+    minSdk = 11
+    targetSdk = 23
+    support = "23.1.1"
+    buildTools = "23.0.2"
+    glide = "3.6.0"
+    okio = "1.4.0"
+    okhttp = "2.4.0"
+    fabric = "2.4.0"
+    leakcanary = "1.3.1"
+    logansquare = "1.1.0"
+    dagger = "2.0.1"
+    packageName = "com.evilsoulm.keep_nice"
+    butterknife = "7.0.1"
+    retrofit = "2.0.0-beta2"
+    greendao = "2.0.0"
+}
+
+configure(project(':app').subprojects) {//相当于放在app下的build.gradle
+    apply plugin: 'com.android.application'
+    apply plugin: 'com.neenbedankt.android-apt'
+    apply from: rootProject.file('basegradle/commonProject.gradle')
+    apply from: rootProject.file('basegradle/commonAndroid.gradle')
+
+    buildscript {
+        repositories {
+            mavenCentral()
+        }
+
+        dependencies {
+            classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
+        }
+    }
+
+    android {
+        defaultConfig {
+            applicationId rootProject.ext.packageName
+            versionCode 1
+            versionName "1.0"
+        }
+
+        buildTypes {
+            debug {
+                minifyEnabled false
+                debuggable true
+                jniDebuggable true
+            }
+
+            release {
+                minifyEnabled true
+                shrinkResources false
+
+                debuggable false
+                jniDebuggable false
+                zipAlignEnabled true
+                proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            }
+        }
+
+        configurations {
+            all*.exclude group: 'com.google.android', module: 'android'
+            all*.exclude group: 'com.google.android', module: 'support-v4'
+            all*.exclude group: 'asm', module: 'asm'
+            all*.exclude group: 'com.google.code.gson'
+        }
+
+
+        productFlavors {
+            normal {
+
+            }
+
+            ddebug {
+            }
+        }
+    }
+
+    dependencies {
+        compile project(':common')
+        compile project(':model')
+        compile fileTree(dir: 'libs', include: ['*.jar'])
+        compile 'com.android.support:appcompat-v7:' + rootProject.ext.support
+        compile 'com.android.support:design:' + rootProject.ext.support
+        compile 'com.squareup.okio:okio:' + rootProject.ext.okio
+        compile('com.squareup.okhttp:okhttp:' + rootProject.ext.okhttp) {
+            exclude group: 'com.squareup.okio', module: 'okio'
+        }
+        //图片加载
+        compile 'com.github.bumptech.glide:glide:' + rootProject.ext.glide
+        //leakcanary
+        debugCompile 'com.squareup.leakcanary:leakcanary-android:' + rootProject.ext.leakcanary
+        releaseCompile 'com.squareup.leakcanary:leakcanary-android-no-op:' + rootProject.ext.leakcanary
+        //logansquare
+        apt 'com.bluelinelabs:logansquare-compiler:' + rootProject.ext.logansquare
+        compile 'com.bluelinelabs:logansquare:' + rootProject.ext.logansquare
+        //dagger2 注入
+        apt 'com.google.dagger:dagger-compiler:' + rootProject.ext.dagger
+        compile 'com.google.dagger:dagger:' + rootProject.ext.dagger
+        //UI注入
+        compile 'com.jakewharton:butterknife:' + rootProject.ext.butterknife
+        //rxjava
+        compile 'io.reactivex:rxjava:1.0.10'
+        compile 'io.reactivex:rxandroid:0.24.0'
+        //网络框架
+        compile 'com.squareup.retrofit:retrofit:' + rootProject.ext.retrofit
+        compile 'com.squareup.retrofit:converter-gson:' + rootProject.ext.retrofit
+        compile 'com.squareup.retrofit:adapter-rxjava:' + rootProject.ext.retrofit
+    }
+}
+```
+
+##属性
+如果是单个脚本，则不需要考虑属性的跨脚本传播，但是Gradle往往包含不止一个build.gradle文件，比如我设置的utils.gradle，settings.gradle。如何在多个脚本中设置属性呢？
+Gradle提供了一种名为**extra property**的方法。**extra property**是额外属性的意思，在第一次定义该属性的时候需要通过ext前缀来标示它是一个额外的属性。定义好之后，后面的存取就不需要ext前缀了。ext属性支持Project和Gradle对象。即Project和Gradle对象都可以设置ext属性
+
+在上面的例子中其实我们已经用到了ext来定义一些常亮，eg:packageName,compileversion等
+现在结合groovy相关知识,再重构下上面的gradle配置.
+
+定义一个const.gradle用来管理我们的常亮和各个库所依赖的库.
+```groovy
+ext {
+    android_const = [
+            compileSdk : 23,
+            minSdk     : 11,
+            targetSdk  : 23,
+            support    : "23.1.1",
+            buildTools : "23.0.2",
+            packageName: "com.evilsoulm.keep_nice"
+    ]
+
+    dep_const = [
+            glide      : "3.6.0",
+            okio       : "1.4.0",
+            okhttp     : "2.4.0",
+            fabric     : "2.4.0",
+            leakcanary : "1.3.1",
+            logansquare: "1.1.0",
+            dagger     : "2.0.1",
+            butterknife: "7.0.1",
+            retrofit   : "2.0.0-beta2",
+            greendao   : "2.0.0"
+    ]
+
+    app_dep = [
+            "appcompat-v7"      : 'com.android.support:appcompat-v7:' + android_const.support,
+            "design"            : 'com.android.support:design:' + android_const.support,
+            "okio"              : 'com.squareup.okio:okio:' + dep_const.okio,
+            "okhttp"            : 'com.squareup.okhttp:okhttp:' + dep_const.okhttp,
+            "glide"             : 'com.github.bumptech.glide:glide:' + dep_const.glide,
+            "debug_leakcanary"  : 'com.squareup.leakcanary:leakcanary-android:' + dep_const.leakcanary,
+            "release_leakcanary": 'com.squareup.leakcanary:leakcanary-android-no-op:' + dep_const.leakcanary,
+            "glide"             : 'com.github.bumptech.glide:glide:' + dep_const.glide,
+            "apt_logansquare"   : 'com.bluelinelabs:logansquare-compiler:' + dep_const.logansquare,
+            "logansquare"       : 'com.bluelinelabs:logansquare:' + dep_const.logansquare,
+            "apt_dagger"        : 'com.google.dagger:dagger-compiler:' + dep_const.dagger,
+            "dagger"            : 'com.google.dagger:dagger:' + dep_const.dagger,
+            "butterknife"       : 'com.jakewharton:butterknife:' + dep_const.butterknife,
+            "rxjava"            : 'io.reactivex:rxjava:1.0.10',
+            "rxandroid"         : 'io.reactivex:rxandroid:0.24.0',
+            "retrofit"          : 'com.squareup.retrofit:retrofit:' + dep_const.retrofit,
+            "converter-gson"    : 'com.squareup.retrofit:converter-gson:' + dep_const.retrofit,
+            "adapter-rxjava"    : 'com.squareup.retrofit:adapter-rxjava:' + dep_const.retrofit
+    ]
+
+    model_generator_dep = [
+            "greendao-generator": 'de.greenrobot:greendao-generator:' + dep_const.greendao
+    ]
+
+    model_dep = [
+            "greendao": 'de.greenrobot:greendao:' + dep_const.greendao,
+            "android" : 'com.google.android:android:4.1.1.4'
+    ]
+
+}
+```
+根目录的build.gradle
+```
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+apply from: "basegradle/const.gradle" //引入const.gradle 有点继承的感觉 也就是现在rootProject也就拥有const.gradle里的方法和变量
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:1.2.3'
+    }
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+```
+
+使用
+//老的版本
+```
+apply plugin: 'java'
+
+dependencies {
+    compile 'de.greenrobot:greendao:' + rootProject.ext.greendao
+    compile(group: 'com.google.android', name: 'android', version: '4.1.1.4')
+}
+```
+改造后 简单清楚
+```
+apply plugin: 'java'
+
+dependencies {
+    compile rootProject.ext.model_dep.greendao
+    compile rootProject.ext.model_dep.android
+}
+
+```
+
+查看依赖树
+```
+gradle dependencies
+```
+
+```
+task helloShortCut << {
+    println 'short cut'
+}
+
+//打印0道9
+task count << {
+    10.times { print("$it ") }
+}
+
+task intro(dependsOn: helloShortCut) << {
+    print "i am gradle"
+}
+
+//动态task
+10.times {
+    time ->
+        task "task$time" << {
+            println " i am task number $time"
+        }
+}
+
+task8.dependsOn task1, task2, task3, task4
+
+task hello << {
+    println 'Hello Earth'
+}
+hello.doFirst {
+    println 'Hello Venus'
+}
+hello.doLast {
+    println 'Hello Mars'
+}
+hello << {
+    println 'Hello Jupiter'
+}
+
+task loadFile << {
+    def files = file('../antLoadfileResources').listFiles().sort();
+    files.each {
+        File file ->
+            if (file.isFile()) {
+
+            }
+    }
+}
+gradle.taskGraph.whenReady {taskGraph ->
+    if (taskGraph.hasTask("assembleSpeedCompilation")) {
+        println '_____________________________assembleSpeedCompilationDebug'
+    } else {
+        println '_____________________________--不包含'
+    }
+}
+
+```
+
+```
+//显示依赖包的存储路径task
+ showRemoteDependencies << {  
+  configurations.compile.each { println it 
+  }}
+```
+demo->[github](https://github.com/EvilsoulM/Keep_Nice)
+
+其他gradle:
+[Android 开发必备知识：我和 Gradle 有个约会](http://mp.weixin.qq.com/s?__biz=MzA3NTYzODYzMg==&mid=401572523&idx=1&sn=19504d41b81f82a5388ae4f95072aea5&scene=23&srcid=12041X7V3OasnmafRevYn2jz#rd)
+[深入理解Android（一）：Gradle详解](http://www.infoq.com/cn/articles/android-in-depth-gradle)
+[Gradle脚本基础全攻略](http://blog.csdn.net/yanbober/article/details/49314255)
+[Speeding up Gradle builds](http://kevinpelgrims.com/blog/2015/06/11/speeding-up-your-gradle-builds/)
+[Android应用开发编译框架流程与IDE及Gradle概要 ](http://blog.csdn.net/yanbober/article/details/49408489)
+[深入理解Android之Gradle](http://blog.csdn.net/innost/article/details/48228651)
+[Android Plugin DSL Reference](http://google.github.io/android-gradle-dsl/current/)
