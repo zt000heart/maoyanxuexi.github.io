@@ -1,7 +1,7 @@
 # Site settings
-title: MYAndroid Study
+title: 猫眼android
 header-img: "img/bg_starbuck2.jpg"
-tagline: "MYAndroid"
+tagline: "猫眼电影"
 description: "在遙遠的地方 一切虔誠終必相遇"
 baseurl: ""
 url: "http://maoyanxuexi.github.io"
@@ -9,7 +9,7 @@ url: "http://maoyanxuexi.github.io"
 
 # About/contact
 owner:
-  name: "MYAndroid Study"
+  name: "猫眼Android"
   email: maoyanxuexi@gmail.com
   bio: "明朝即長路 惜取此時心"
 
