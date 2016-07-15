@@ -1,5 +1,5 @@
 # Site settings
-title: Maoyanxuexi
+title: 猫眼android学习小组
 header-img: "img/autumn2.jpg"
 tagline: "吉光片羽"  
 description: "在遙遠的地方 一切虔誠終必相遇"  
@@ -9,7 +9,7 @@ url: "http://maoyanxuexi.github.io"
 
 # About/contact
 owner: 
-  name: "maoyanxuexi"
+  name: "猫眼android学习小组"
   email: maoyanxuexi@gmail.com
   bio: "明朝即長路 惜取此時心"
 
