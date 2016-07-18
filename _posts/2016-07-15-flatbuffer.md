@@ -19,15 +19,36 @@ null
 
 ## **1、flatbuffers简介**
 
+flatbuffer是google的一个跨平台串行化库，开发这个最初是用在游戏项目中，github项目地址[flatbuffers](https://github.com/google/flatbuffers)FlatBuffer提供了详细的使用文档，可以参考Google.github.io主页上的教程。
 
 ## **2、flatbuffers VS JSON**
 
+对于Json我们使用了这么长时间，目前几乎所有的数据传输格式都是Json，我们都知道Json是当今全服务平台的轻量级数据传输格式，Json量级轻，并且可读性强，使用友好却不过时，Json是语言独立的数据格式，但Json转换的时候却耗费较多的时间和内存，Facebook尝试过将所有的App中Json传输都换成使用Flatbuffers，而最终的效果可以参考一下这篇文章[Improving Facebook's performance on Android with FlatBuffers](https://code.facebook.com/posts/872547912839369/improving-facebook-s-performance-on-android-with-flatbuffers/)，看起来这个确实很有前途。正如facebook展示的那样，遵循Android快速响应界面的16ms原则。
+
+如果你想把项目中所有的Json都替换为flatbuffers，首先要确认项目中真的需要这个，很多时候对性能的影响是潜移默化的，相比而言数据安全更加重要。
+
+下面介绍三个数据序列化的候选方案：
+
+Protocal Buffers：强大，灵活，但是对内存的消耗会比较大，并不是移动终端上的最佳选择。
+Nano-Proto-Buffers：基于Protocal，为移动终端做了特殊的优化，代码执行效率更高，内存使用效率更佳。
+FlatBuffers：这个开源库最开始是由Google研发的，专注于提供更优秀的性能。
+
+上面这些方案在性能方面的数据对比如下图所示：
+
+![Paste_Image.png](http://img.blog.csdn.net/20160112165416290)
+![Paste_Image.png](http://img.blog.csdn.net/20160112165503594)
+
+
+为什么flatbuffers这么高效？
+
+1.序列化数据访问不经过转换，即使用了分层数据。这样我们就不需要初始化解析器（没有复杂的字段映射）并且转换这些数据仍然需要时间。
+
+2.flatbuffers不需要申请更多的空间，不需要分配额外的对象。
 
 ## **3、flatbuffers 使用**
  
  **（1）生成flatc**
- 
-github项目地址[flatbuffers](https://github.com/google/flatbuffers)
+
 
 在使用前我们需要先生成flatc，flatc用来将我们编写的fbs文件转换成Java文件，也可以转换成其他文件，但我们在这里并不关心。
 编译FlatBuffers生成flatc，我使用的是CMake工具，我们要先安装cmake。
@@ -75,6 +96,29 @@ cd到从git下载下来的文件夹，编译flatc程序
 
 会在目录下生成相关的java文件。
 
+定义Schema：
+
+类型支持：基本的数据类型，只有标量值可以有默认值，非标量（string/vector/table）字段默认不存在时为null。如果指定会报
+
+	error: default values currently only supported for scalars
+
+的错误，如果想要指定String类型的默认值可以修改生成的Java文件，虽然不建议这么做。
+默认值写法：
+
+age : int = 4 ;
+isMe : bool = false;
+
+支持数组写法：
+
+array : [string];
+
+支持自定义数据类型
+
+people ： People；
+
+但使用的数据类型必须在同一文件中定义。
+
+
  **（3）终于回到Android Stadio部分**
  在gradle中添加
  
@@ -82,7 +126,7 @@ cd到从git下载下来的文件夹，编译flatc程序
  
  然后把刚才生成的People的Java问价添加到项目中。
  准备活动完成，使用起来就比较方便了。
- 我们可以看一下flatbuffers，jar包里的文件，Table对应于类，Struct是结构体主要是一个ByteBuffer，Constants存放了三个常量，SIZEOF_SHORT，SIZEOF_INT和FILE_IDENTIFIER_LENGTH，用到最多的是FlatBufferBuilder。
+ 使用过程中，用到最多的是FlatBufferBuilder。
  
         FlatBufferBuilder builder = new FlatBufferBuilder(0);
         int sun = builder.createString("Sun");
@@ -96,8 +140,11 @@ cd到从git下载下来的文件夹，编译flatc程序
 
         People people = People.getRootAsPeople(buffer);
         textView.setText(people.name());
-
-
+        
+ 生成FlatBufferBuilder, new的方式传入的参数是内部缓冲区的初始大小。使用的非标量类型需要提前生成offset，offset时缓冲区中已编码的字符串开始的偏移量。添加属性前需要先调用类型的start，变量赋值是以add的方式，赋值完成后调用类型的end方法，然后builder的finish，最后转换成字节buffer用于传输。
+ 
+ 取值时通过类型的getRootAs...(buffer)直接拿到对象。
+ 
 —End—
 
 ## **迭代**
