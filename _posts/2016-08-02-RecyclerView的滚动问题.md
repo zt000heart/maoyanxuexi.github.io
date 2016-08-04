@@ -114,6 +114,12 @@ RecyclerView本身提供的滚动方法有两个
         
 这样我们需要的效果就实现了。
 
+不要看下面这段，看完你会打我。
+在LinearLayoutManager有这样一个方法，开始的时候没有找到。
+public void scrollToPositionWithOffset(int position, int offset)
+指定offset为0，就可以搞定了。。。
+真的不要打我。。。。。。。。我也是受害者
+
  
 —End—
 
